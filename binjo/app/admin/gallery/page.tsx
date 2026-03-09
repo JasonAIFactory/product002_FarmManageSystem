@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { GalleryPhotoItem } from "@/types";
+import ImageUpload from "@/components/admin/ImageUpload";
 
 export default function GalleryAdminPage() {
   const [photos, setPhotos] = useState<GalleryPhotoItem[]>([]);
@@ -57,18 +58,12 @@ export default function GalleryAdminPage() {
       <div className="rounded-2xl p-6 mb-8" style={{ backgroundColor: "#FFFFFF" }}>
         <h2 className="text-base font-semibold mb-4" style={{ color: "#1A1A1A" }}>사진 추가</h2>
         <div className="space-y-3">
-          <div>
-            <label className="block text-xs font-medium mb-1" style={{ color: "#6B6B6B" }}>
-              이미지 URL *
-            </label>
-            <input
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              placeholder="https://..."
-              className="w-full px-4 py-3 rounded-xl border outline-none text-sm"
-              style={{ borderColor: "#E5E2DB", backgroundColor: "#F5F1EC" }}
-            />
-          </div>
+          <ImageUpload
+            label="사진 선택"
+            hint="JPG, PNG, WebP 파일 (최대 10MB)"
+            value={imageUrl}
+            onChange={setImageUrl}
+          />
           <div>
             <label className="block text-xs font-medium mb-1" style={{ color: "#6B6B6B" }}>
               사진 설명 (선택)
@@ -82,13 +77,6 @@ export default function GalleryAdminPage() {
             />
           </div>
 
-          {imageUrl && (
-            <div className="mt-2">
-              <p className="text-xs mb-1" style={{ color: "#9B9B9B" }}>미리보기</p>
-              <img src={imageUrl} alt="미리보기" className="w-40 h-28 object-cover rounded-xl" onError={(e) => (e.currentTarget.style.display = "none")} />
-            </div>
-          )}
-
           <div className="flex items-center gap-4 pt-2">
             <button
               onClick={handleAdd}
@@ -96,7 +84,7 @@ export default function GalleryAdminPage() {
               className="px-6 py-2.5 rounded-xl font-bold text-white text-sm disabled:opacity-50"
               style={{ backgroundColor: "#2D5016" }}
             >
-              {saving ? "추가 중..." : "사진 추가"}
+              {saving ? "추가 중..." : "갤러리에 추가"}
             </button>
             {message && (
               <p className="text-sm" style={{ color: message.includes("실패") ? "#D4421E" : "#4A7C2E" }}>

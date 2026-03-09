@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ProductItem, PriceOption } from "@/types";
+import ImageUpload from "@/components/admin/ImageUpload";
 
 const MONTHS = ["", "1월", "2월", "3월", "4월", "5월", "6월", "7월", "8월", "9월", "10월", "11월", "12월"];
 
@@ -84,10 +85,11 @@ function ProductForm({
         </div>
       </div>
 
-      <div>
-        <label className="block text-xs font-medium mb-1" style={{ color: "#6B6B6B" }}>사진 URL</label>
-        <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://..." className={inputClass} style={inputStyle} />
-      </div>
+      <ImageUpload
+        label="상품 사진"
+        value={imageUrl}
+        onChange={setImageUrl}
+      />
 
       <div>
         <div className="flex items-center justify-between mb-2">

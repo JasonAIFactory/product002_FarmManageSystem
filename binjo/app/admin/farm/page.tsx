@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import ImageUpload from "@/components/admin/ImageUpload";
 
 interface FarmForm {
   name: string;
@@ -183,22 +184,18 @@ export default function FarmAdminPage() {
         <Field label="전체 주소" field="address" placeholder="경상남도 사천시 용현면 용치골길 00" form={form} onChange={handleChange} />
 
         <hr style={{ borderColor: "#E5E2DB" }} />
-        <h2 className="text-base font-semibold" style={{ color: "#1A1A1A" }}>이미지 URL</h2>
-        <Field
-          label="메인 배경 이미지 URL"
-          field="hero_image_url"
-          placeholder="https://..."
+        <h2 className="text-base font-semibold" style={{ color: "#1A1A1A" }}>이미지</h2>
+        <ImageUpload
+          label="메인 배경 이미지"
           hint="1920x1080px 이상, 가로로 넓은 사진 권장"
-          form={form}
-          onChange={handleChange}
+          value={form.hero_image_url}
+          onChange={(url) => handleChange("hero_image_url", url)}
         />
-        <Field
-          label="농장주 사진 URL"
-          field="farmer_image_url"
-          placeholder="https://..."
+        <ImageUpload
+          label="농장주 사진"
           hint="세로로 긴 사진 권장 (3:4 비율)"
-          form={form}
-          onChange={handleChange}
+          value={form.farmer_image_url}
+          onChange={(url) => handleChange("farmer_image_url", url)}
         />
 
         <hr style={{ borderColor: "#E5E2DB" }} />
