@@ -16,6 +16,8 @@ interface SectionConfig {
   id: string;
   label: string;
   visible: boolean;
+  bgColor?: string;
+  bgImage?: string;
 }
 
 const DEFAULT_SECTIONS: SectionConfig[] = [
@@ -114,7 +116,22 @@ export default async function BrandPage() {
       {sections
         .filter((s) => s.visible)
         .map((s) => (
-          <div key={s.id}>{sectionComponents[s.id]}</div>
+          <div
+            key={s.id}
+            style={{
+              // Custom background from admin layout editor
+              ...(s.bgColor ? { backgroundColor: s.bgColor } : {}),
+              ...(s.bgImage
+                ? {
+                    backgroundImage: `url(${s.bgImage})`,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                  }
+                : {}),
+            }}
+          >
+            {sectionComponents[s.id]}
+          </div>
         ))}
       <StickyOrderCTA
         kakaoUrl={farm.kakao_chat_url}
