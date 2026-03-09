@@ -2,26 +2,37 @@ import { createClient } from "@supabase/supabase-js";
 
 // CORE_CANDIDATE — reusable file upload to Supabase Storage
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const BUCKET = "images";
 
-if (!supabaseUrl) throw new Error("NEXT_PUBLIC_SUPABASE_URL is not set");
-if (!supabaseServiceKey) throw new Error("SUPABASE_SERVICE_ROLE_KEY is not set");
+// Lazy initialization — avoids crashing at import time if env vars are missing
+function getSupabaseClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error("Supabase environment variables are not set (NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)");
+  }
 
-const BUCKET = "photos";
+  return createClient(supabaseUrl, supabaseServiceKey);
+}
 
 export async function uploadImage(
   file: Buffer,
   fileName: string,
   contentType: string
 ): Promise<string> {
-  const path = `${Date.now()}-${fileName}`;
+  const supabase = getSupabaseClient();
+
+  // Sanitize filename — remove spaces and special chars
+  const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const path = `${Date.now()}-${safeName}`;
+
+  // Convert Buffer to Uint8Array — Supabase SDK expects this
+  const uint8 = new Uint8Array(file);
 
   const { error } = await supabase.storage
     .from(BUCKET)
-    .upload(path, file, {
+    .upload(path, uint8, {
       contentType,
       upsert: false,
     });
