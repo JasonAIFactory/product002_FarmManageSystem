@@ -7,6 +7,8 @@ const SectionSchema = z.object({
   id: z.string(),
   label: z.string(),
   visible: z.boolean(),
+  bgColor: z.string().optional(),
+  bgImage: z.string().optional(),
 });
 
 const UpdateSchema = z.object({

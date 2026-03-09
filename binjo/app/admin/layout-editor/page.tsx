@@ -294,8 +294,12 @@ export default function LayoutEditorPage() {
 
   useEffect(() => {
     fetch("/api/admin/sections")
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) return null;
+        return r.json();
+      })
       .then((data) => {
+        if (!data) return;
         if (data.sections_config && Array.isArray(data.sections_config)) {
           const saved = data.sections_config as SectionConfig[];
           const savedIds = new Set(saved.map((s) => s.id));
@@ -306,7 +310,8 @@ export default function LayoutEditorPage() {
           ];
           setSections(merged);
         }
-      });
+      })
+      .catch(() => {});
   }, []);
 
   const handleDragEnd = (event: DragEndEvent) => {
