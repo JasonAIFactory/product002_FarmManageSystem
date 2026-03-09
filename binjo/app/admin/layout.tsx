@@ -138,19 +138,25 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </aside>
 
-      {/* Mobile nav */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex border-t" style={{ backgroundColor: "#2D5016", borderColor: "#4A7C2E" }}>
-        {NAV_ITEMS.slice(0, 5).map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className="flex-1 flex flex-col items-center py-2 text-xs gap-1"
-            style={{ color: pathname === item.href ? "#FFFFFF" : "rgba(255,255,255,0.5)" }}
-          >
-            <span className="text-lg">{item.icon}</span>
-            <span>{item.label}</span>
-          </Link>
-        ))}
+      {/* Mobile nav — scrollable to fit all items */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 overflow-hidden border-t" style={{ backgroundColor: "#2D5016", borderColor: "#4A7C2E" }}>
+        <div className="flex overflow-x-auto scrollbar-hide">
+          {NAV_ITEMS.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="flex-shrink-0 flex flex-col items-center py-2 text-xs gap-1"
+              style={{
+                color: pathname === item.href ? "#FFFFFF" : "rgba(255,255,255,0.5)",
+                width: `${100 / Math.min(NAV_ITEMS.length, 5)}%`,
+                minWidth: "64px",
+              }}
+            >
+              <span className="text-lg">{item.icon}</span>
+              <span className="whitespace-nowrap">{item.label}</span>
+            </Link>
+          ))}
+        </div>
       </div>
 
       {/* Main content */}
