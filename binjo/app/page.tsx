@@ -12,6 +12,23 @@ import { FarmProfile, ProductItem, CalendarMonth, GalleryPhotoItem, ReviewItem }
 
 export const revalidate = 60; // ISR: revalidate every 60s
 
+interface SectionConfig {
+  id: string;
+  label: string;
+  visible: boolean;
+}
+
+const DEFAULT_SECTIONS: SectionConfig[] = [
+  { id: "hero", label: "메인 배너", visible: true },
+  { id: "story", label: "농장 이야기", visible: true },
+  { id: "products", label: "상품 소개", visible: true },
+  { id: "calendar", label: "제철 달력", visible: true },
+  { id: "youtube", label: "유튜브 영상", visible: true },
+  { id: "gallery", label: "사진 갤러리", visible: true },
+  { id: "reviews", label: "고객 후기", visible: true },
+  { id: "order", label: "주문/문의", visible: true },
+];
+
 async function getData() {
   const [farm, products, calendar, gallery, reviews] = await Promise.all([
     prisma.farm.findFirst(),
@@ -74,16 +91,31 @@ export default async function BrandPage() {
     sort_order: r.sort_order,
   }));
 
+  // Read sections config from DB, fallback to defaults
+  const sections: SectionConfig[] =
+    farm.sections_config && Array.isArray(farm.sections_config)
+      ? (farm.sections_config as unknown as SectionConfig[])
+      : DEFAULT_SECTIONS;
+
+  // Map section IDs to their React components
+  const sectionComponents: Record<string, React.ReactNode> = {
+    hero: <HeroSection farm={farmProfile} />,
+    story: <StorySection farm={farmProfile} />,
+    products: <ProductsSection products={productItems} />,
+    calendar: <CalendarSection calendar={calendarMonths} />,
+    youtube: farm.youtube_url ? <YoutubeSection youtubeUrl={farm.youtube_url} /> : null,
+    gallery: <GallerySection photos={galleryItems} />,
+    reviews: <ReviewsSection reviews={reviewItems} />,
+    order: <OrderSection farm={farmProfile} products={productItems} />,
+  };
+
   return (
     <main>
-      <HeroSection farm={farmProfile} />
-      <StorySection farm={farmProfile} />
-      <ProductsSection products={productItems} />
-      <CalendarSection calendar={calendarMonths} />
-      {farm.youtube_url && <YoutubeSection youtubeUrl={farm.youtube_url} />}
-      <GallerySection photos={galleryItems} />
-      <ReviewsSection reviews={reviewItems} />
-      <OrderSection farm={farmProfile} products={productItems} />
+      {sections
+        .filter((s) => s.visible)
+        .map((s) => (
+          <div key={s.id}>{sectionComponents[s.id]}</div>
+        ))}
       <StickyOrderCTA
         kakaoUrl={farm.kakao_chat_url}
         phone={farm.phone}

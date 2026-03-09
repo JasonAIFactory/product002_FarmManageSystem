@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { href: "/admin/gallery", label: "사진 갤러리", icon: "📷" },
   { href: "/admin/reviews", label: "고객 후기", icon: "⭐" },
   { href: "/admin/calendar", label: "제철 달력", icon: "📅" },
+  { href: "/admin/layout-editor", label: "페이지 관리", icon: "🎨" },
   { href: "/admin/analytics", label: "방문 통계", icon: "📊" },
 ];
 
