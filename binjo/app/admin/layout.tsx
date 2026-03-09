@@ -15,12 +15,16 @@ const NAV_ITEMS = [
   { href: "/admin/analytics", label: "방문 통계", icon: "📊" },
 ];
 
+// First 4 items show in the bottom bar; the rest appear in the "More" popup
+const MOBILE_MAIN_COUNT = 4;
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [authed, setAuthed] = useState(false);
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
+  const [moreOpen, setMoreOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
 
@@ -138,24 +142,65 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </aside>
 
-      {/* Mobile nav — scrollable to fit all items */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 overflow-hidden border-t" style={{ backgroundColor: "#2D5016", borderColor: "#4A7C2E" }}>
-        <div className="flex overflow-x-auto scrollbar-hide">
-          {NAV_ITEMS.map((item) => (
+      {/* Mobile nav — 4 main tabs + "More" button */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t" style={{ backgroundColor: "#2D5016", borderColor: "#4A7C2E" }}>
+        {/* "More" popup — slides up above the nav bar */}
+        {moreOpen && (
+          <>
+            {/* Backdrop to close on tap outside */}
+            <div className="fixed inset-0 z-40" onClick={() => setMoreOpen(false)} />
+            <div
+              className="absolute bottom-full left-0 right-0 z-50 rounded-t-2xl shadow-lg p-4 grid grid-cols-4 gap-3"
+              style={{ backgroundColor: "#FFFFFF", borderTop: "1px solid #E5E2DB" }}
+            >
+              {NAV_ITEMS.slice(MOBILE_MAIN_COUNT).map((item) => {
+                const isActive = pathname === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setMoreOpen(false)}
+                    className="flex flex-col items-center gap-1 py-3 rounded-xl text-xs font-medium"
+                    style={{
+                      backgroundColor: isActive ? "#EDF4E8" : "transparent",
+                      color: isActive ? "#2D5016" : "#6B6B6B",
+                    }}
+                  >
+                    <span className="text-xl">{item.icon}</span>
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        <div className="flex">
+          {NAV_ITEMS.slice(0, MOBILE_MAIN_COUNT).map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className="flex-shrink-0 flex flex-col items-center py-2 text-xs gap-1"
-              style={{
-                color: pathname === item.href ? "#FFFFFF" : "rgba(255,255,255,0.5)",
-                width: `${100 / Math.min(NAV_ITEMS.length, 5)}%`,
-                minWidth: "64px",
-              }}
+              onClick={() => setMoreOpen(false)}
+              className="flex-1 flex flex-col items-center py-2 text-xs gap-1"
+              style={{ color: pathname === item.href ? "#FFFFFF" : "rgba(255,255,255,0.5)" }}
             >
               <span className="text-lg">{item.icon}</span>
-              <span className="whitespace-nowrap">{item.label}</span>
+              <span>{item.label}</span>
             </Link>
           ))}
+          {/* "More" tab — highlights when any hidden page is active */}
+          <button
+            onClick={() => setMoreOpen(!moreOpen)}
+            className="flex-1 flex flex-col items-center py-2 text-xs gap-1"
+            style={{
+              color: moreOpen || NAV_ITEMS.slice(MOBILE_MAIN_COUNT).some((item) => pathname === item.href)
+                ? "#FFFFFF"
+                : "rgba(255,255,255,0.5)",
+            }}
+          >
+            <span className="text-lg">⋯</span>
+            <span>더보기</span>
+          </button>
         </div>
       </div>
 
