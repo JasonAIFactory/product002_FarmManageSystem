@@ -162,3 +162,10 @@ export async function confirmFarmLog(id: string): Promise<FarmLog> {
 export async function deleteFarmLog(id: string): Promise<void> {
   return apiFetch(`/farm-logs/${id}`, { method: "DELETE" });
 }
+
+// --- Export ---
+
+export function getExportUrl(dateFrom: string, dateTo: string): string {
+  const token = getToken();
+  return `${API_BASE}/api/v1/export/farm-diary?date_from=${dateFrom}&date_to=${dateTo}&token=${token}`;
+}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { listFarmLogs, confirmFarmLog, deleteFarmLog, type FarmLog } from "@/lib/farmerApi";
+import { listFarmLogs, confirmFarmLog, deleteFarmLog, getExportUrl, type FarmLog } from "@/lib/farmerApi";
 import LogList from "@/components/farmer/LogList";
 
 /**
@@ -51,9 +51,24 @@ export default function LogsPage() {
       <h2 className="text-lg font-bold mb-1" style={{ color: "#2D5016" }}>
         영농일지
       </h2>
-      <p className="text-xs mb-6" style={{ color: "#6B6B6B" }}>
-        전체 기록 ({logs.length}건)
-      </p>
+      <div className="flex items-center justify-between mb-6">
+        <p className="text-xs" style={{ color: "#6B6B6B" }}>
+          전체 기록 ({logs.length}건)
+        </p>
+        {logs.length > 0 && (
+          <button
+            onClick={() => {
+              const dates = logs.map((l) => l.log_date).sort();
+              const url = getExportUrl(dates[0], dates[dates.length - 1]);
+              window.open(url, "_blank");
+            }}
+            className="text-xs px-3 py-1.5 rounded-lg font-medium"
+            style={{ backgroundColor: "#EDF4E8", color: "#2D5016" }}
+          >
+            📄 영농일지 출력
+          </button>
+        )}
+      </div>
 
       {loading ? (
         <p className="text-sm text-center py-12" style={{ color: "#9B9B9B" }}>
