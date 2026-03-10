@@ -34,3 +34,9 @@ html {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+/* When admin sets a custom bg color/image on a section wrapper,
+   force the child section to be transparent so the wrapper's bg shows through */
+.custom-bg-wrapper > section {
+  background-color: transparent !important;
+}

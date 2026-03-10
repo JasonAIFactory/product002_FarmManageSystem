@@ -115,24 +115,29 @@ export default async function BrandPage() {
     <main>
       {sections
         .filter((s) => s.visible)
-        .map((s) => (
-          <div
-            key={s.id}
-            style={{
-              // Custom background from admin layout editor
-              ...(s.bgColor ? { backgroundColor: s.bgColor } : {}),
-              ...(s.bgImage
-                ? {
-                    backgroundImage: `url(${s.bgImage})`,
-                    backgroundSize: "cover",
-                    backgroundPosition: "center",
-                  }
-                : {}),
-            }}
-          >
-            {sectionComponents[s.id]}
-          </div>
-        ))}
+        .map((s) => {
+          const hasCustomBg = !!(s.bgColor || s.bgImage);
+          return (
+            <div
+              key={s.id}
+              style={{
+                // Custom background from admin layout editor
+                ...(s.bgColor ? { backgroundColor: s.bgColor } : {}),
+                ...(s.bgImage
+                  ? {
+                      backgroundImage: `url(${s.bgImage})`,
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
+                    }
+                  : {}),
+              }}
+              // Force child section to be transparent so the wrapper's bg shows through
+              className={hasCustomBg ? "custom-bg-wrapper" : ""}
+            >
+              {sectionComponents[s.id]}
+            </div>
+          );
+        })}
       <StickyOrderCTA
         kakaoUrl={farm.kakao_chat_url}
         phone={farm.phone}

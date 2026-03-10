@@ -164,26 +164,33 @@ function StyleEditor({
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setUploading(true);
+    setUploadError("");
     const formData = new FormData();
     formData.append("file", file);
 
     try {
       const res = await fetch("/api/admin/upload", {
         method: "POST",
+        credentials: "include",
         body: formData,
       });
       if (res.ok) {
         const data = await res.json();
         onUpdate({ bgImage: data.url });
+      } else {
+        // Show the error from the API so the user knows what went wrong
+        const data = await res.json().catch(() => null);
+        setUploadError(data?.error?.message ?? `업로드 실패 (${res.status})`);
       }
-    } catch {
-      // Upload failed silently — user can retry
+    } catch (err) {
+      setUploadError("네트워크 오류 — 다시 시도해주세요");
     }
     setUploading(false);
     if (fileRef.current) fileRef.current.value = "";
@@ -276,6 +283,11 @@ function StyleEditor({
           onChange={handleImageUpload}
           className="hidden"
         />
+        {uploadError && (
+          <p className="text-xs mt-1" style={{ color: "#D4421E" }}>
+            {uploadError}
+          </p>
+        )}
       </div>
     </div>
   );
@@ -293,7 +305,7 @@ export default function LayoutEditorPage() {
   );
 
   useEffect(() => {
-    fetch("/api/admin/sections")
+    fetch("/api/admin/sections", { credentials: "include" })
       .then((r) => {
         if (!r.ok) return null;
         return r.json();
@@ -343,6 +355,7 @@ export default function LayoutEditorPage() {
     const res = await fetch("/api/admin/sections", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({ sections }),
     });
     setSaving(false);
