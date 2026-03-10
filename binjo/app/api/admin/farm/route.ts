@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
@@ -58,6 +59,7 @@ export async function PUT(req: NextRequest) {
       },
     });
 
+    revalidatePath("/");
     return NextResponse.json(updated);
   } catch (error) {
     console.error("PUT /api/admin/farm failed:", error);

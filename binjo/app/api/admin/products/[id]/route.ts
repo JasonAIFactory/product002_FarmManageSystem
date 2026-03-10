@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
@@ -49,6 +50,7 @@ export async function PUT(
       },
     });
 
+    revalidatePath("/");
     return NextResponse.json(product);
   } catch (error) {
     console.error("PUT /api/admin/products/[id] failed:", error);
@@ -68,6 +70,7 @@ export async function DELETE(
   try {
     const { id } = await params;
     await prisma.product.delete({ where: { id } });
+    revalidatePath("/");
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("DELETE /api/admin/products/[id] failed:", error);

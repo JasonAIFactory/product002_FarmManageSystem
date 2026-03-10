@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireAdmin, unauthorizedResponse } from "@/lib/auth";
 
@@ -11,6 +12,7 @@ export async function DELETE(
   try {
     const { id } = await params;
     await prisma.galleryPhoto.delete({ where: { id } });
+    revalidatePath("/");
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("DELETE /api/admin/gallery/[id] failed:", error);

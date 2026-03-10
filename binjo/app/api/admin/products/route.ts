@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
@@ -53,6 +54,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    revalidatePath("/");
     return NextResponse.json(product, { status: 201 });
   } catch (error) {
     console.error("POST /api/admin/products failed:", error);

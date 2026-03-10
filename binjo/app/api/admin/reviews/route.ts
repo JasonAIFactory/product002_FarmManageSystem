@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireAdmin, unauthorizedResponse } from "@/lib/auth";
@@ -38,6 +39,7 @@ export async function POST(req: NextRequest) {
       data: { ...parsed.data, farm_id: farm.id },
     });
 
+    revalidatePath("/");
     return NextResponse.json(review, { status: 201 });
   } catch (error) {
     console.error("POST /api/admin/reviews failed:", error);

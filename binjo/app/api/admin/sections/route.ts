@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireAdmin, unauthorizedResponse } from "@/lib/auth";
@@ -54,5 +55,6 @@ export async function PUT(req: NextRequest) {
     data: { sections_config: parsed.data.sections },
   });
 
+  revalidatePath("/");
   return NextResponse.json({ success: true });
 }

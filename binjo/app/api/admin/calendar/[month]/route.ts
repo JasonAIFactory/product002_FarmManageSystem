@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireAdmin, unauthorizedResponse } from "@/lib/auth";
@@ -56,6 +57,7 @@ export async function PUT(
       },
     });
 
+    revalidatePath("/");
     return NextResponse.json(entry);
   } catch (error) {
     console.error("PUT /api/admin/calendar/[month] failed:", error);
