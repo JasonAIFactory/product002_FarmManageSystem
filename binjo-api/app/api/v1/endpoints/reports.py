@@ -36,7 +36,7 @@ def _txn_to_response(txn: FinancialTransaction) -> TransactionResponse:
         id=str(txn.id),
         type=txn.type,
         category=txn.category,
-        amount=txn.amount,
+        amount=int(txn.amount),
         description=txn.description,
         counterparty=txn.counterparty,
         transaction_date=txn.transaction_date,
@@ -154,8 +154,8 @@ async def get_yearly_report(
     farm_id = farmer.farm_id or farmer.id
 
     months = []
-    total_income = Decimal("0")
-    total_expense = Decimal("0")
+    total_income = 0
+    total_expense = 0
 
     for m in range(1, 13):
         summary = await generate_monthly_summary(db, farm_id, year, m)

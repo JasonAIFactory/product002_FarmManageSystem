@@ -59,14 +59,14 @@ async def generate_monthly_summary(
     result = await db.execute(query)
     rows = result.all()
 
-    # Build category breakdowns
-    income_by_category: dict[str, Decimal] = {}
-    expense_by_category: dict[str, Decimal] = {}
-    total_income = Decimal("0")
-    total_expense = Decimal("0")
+    # Build category breakdowns — use int, Korean won has no decimals
+    income_by_category: dict[str, int] = {}
+    expense_by_category: dict[str, int] = {}
+    total_income = 0
+    total_expense = 0
 
     for txn_type, category, total in rows:
-        amount = Decimal(str(total or 0))
+        amount = int(total or 0)
         if txn_type == "income":
             income_by_category[category] = amount
             total_income += amount
@@ -160,9 +160,9 @@ async def get_monthly_trend(
             trends.append(MonthlyTrend(
                 year=y,
                 month=m,
-                total_income=cached.total_income,
-                total_expense=cached.total_expense,
-                net_profit=cached.net_profit,
+                total_income=int(cached.total_income or 0),
+                total_expense=int(cached.total_expense or 0),
+                net_profit=int(cached.net_profit or 0),
             ))
         else:
             # Live aggregation for months without cached report

@@ -36,7 +36,7 @@ def _txn_to_response(txn: FinancialTransaction) -> TransactionResponse:
         id=str(txn.id),
         type=txn.type,
         category=txn.category,
-        amount=txn.amount,
+        amount=int(txn.amount),
         description=txn.description,
         counterparty=txn.counterparty,
         transaction_date=txn.transaction_date,

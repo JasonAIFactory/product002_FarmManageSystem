@@ -44,7 +44,8 @@ class TransactionResponse(BaseModel):
     id: str
     type: str
     category: str
-    amount: Decimal
+    # int, not Decimal — Korean won has no decimals, and Decimal serializes as "1.2E+5"
+    amount: int
     description: str | None = None
     counterparty: str | None = None
     transaction_date: date

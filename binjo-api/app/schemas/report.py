@@ -1,8 +1,5 @@
 """Pydantic schemas for financial report endpoints."""
 
-from datetime import datetime
-from decimal import Decimal
-
 from pydantic import BaseModel
 
 from app.schemas.transaction import TransactionResponse
@@ -13,11 +10,12 @@ class MonthlySummary(BaseModel):
 
     year: int
     month: int
-    total_income: Decimal = Decimal("0")
-    total_expense: Decimal = Decimal("0")
-    net_profit: Decimal = Decimal("0")
-    income_by_category: dict[str, Decimal] = {}
-    expense_by_category: dict[str, Decimal] = {}
+    # int, not Decimal — Korean won has no decimals
+    total_income: int = 0
+    total_expense: int = 0
+    net_profit: int = 0
+    income_by_category: dict[str, int] = {}
+    expense_by_category: dict[str, int] = {}
     status: str = "draft"
     report_pdf_url: str | None = None
 
@@ -27,9 +25,9 @@ class MonthlyTrend(BaseModel):
 
     year: int
     month: int
-    total_income: Decimal = Decimal("0")
-    total_expense: Decimal = Decimal("0")
-    net_profit: Decimal = Decimal("0")
+    total_income: int = 0
+    total_expense: int = 0
+    net_profit: int = 0
 
 
 class DashboardResponse(BaseModel):
@@ -44,7 +42,7 @@ class YearlySummary(BaseModel):
     """12-month financial summary for a given year."""
 
     year: int
-    total_income: Decimal = Decimal("0")
-    total_expense: Decimal = Decimal("0")
-    net_profit: Decimal = Decimal("0")
+    total_income: int = 0
+    total_expense: int = 0
+    net_profit: int = 0
     months: list[MonthlySummary]
