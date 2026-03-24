@@ -11,6 +11,7 @@ from failing the entire voice pipeline (which would frustrate the farmer).
 """
 
 import asyncio
+import base64
 import logging
 
 import anthropic
@@ -25,6 +26,8 @@ MAX_RETRIES = 3
 BASE_DELAY_SECONDS = 1.0
 # Timeout per request — if Claude doesn't respond in 30s, something is wrong
 REQUEST_TIMEOUT_SECONDS = 30.0
+# Vision calls take longer — image encoding + more complex analysis
+VISION_TIMEOUT_SECONDS = 45.0
 
 
 class ClaudeProvider(LLMProvider):
@@ -50,16 +53,90 @@ class ClaudeProvider(LLMProvider):
         Retries on transient errors (rate limit, server error, timeout).
         Does NOT retry on client errors (bad request, auth failure).
         """
+        messages = [{"role": "user", "content": user_message}]
+        return await self._call_with_retry(
+            system_prompt, messages, max_tokens, temperature, REQUEST_TIMEOUT_SECONDS
+        )
+
+    async def complete_with_image(
+        self,
+        system_prompt: str,
+        image_data: bytes,
+        image_media_type: str,
+        user_message: str = "",
+        max_tokens: int = 4000,
+        temperature: float = 0.0,
+    ) -> str:
+        """
+        Send an image + text to Claude Vision for multimodal analysis.
+
+        Used for receipt OCR — sends the receipt photo as a base64 image
+        content block alongside the text prompt. Claude extracts structured
+        data (store, items, amounts, categories) from the image.
+
+        This method is on ClaudeProvider only, not on the abstract LLMProvider,
+        because vision is a Claude-specific capability. The receipt pipeline
+        depends on ClaudeProvider directly — no false abstraction.
+
+        Args:
+            system_prompt: System instructions (receipt parsing rules)
+            image_data: Raw image bytes (JPEG or PNG)
+            image_media_type: MIME type ("image/jpeg" or "image/png")
+            user_message: Optional additional text context
+            max_tokens: Max response tokens (receipts need ~2000-4000)
+            temperature: 0.0 for deterministic extraction
+        """
+        # Build multimodal content: image first, then optional text
+        content: list[dict] = [
+            {
+                "type": "image",
+                "source": {
+                    "type": "base64",
+                    "media_type": image_media_type,
+                    "data": base64.b64encode(image_data).decode("utf-8"),
+                },
+            },
+        ]
+        if user_message:
+            content.append({"type": "text", "text": user_message})
+
+        messages = [{"role": "user", "content": content}]
+        return await self._call_with_retry(
+            system_prompt, messages, max_tokens, temperature, VISION_TIMEOUT_SECONDS
+        )
+
+    async def _call_with_retry(
+        self,
+        system_prompt: str,
+        messages: list[dict],
+        max_tokens: int,
+        temperature: float,
+        timeout: float,
+    ) -> str:
+        """
+        Shared retry logic for text and vision calls.
+
+        Extracted to avoid duplicating the retry/backoff/error-handling code
+        between complete() and complete_with_image().
+        """
         last_error: Exception | None = None
+
+        # Create a client with the appropriate timeout for this call type
+        client = self.client
+        if timeout != REQUEST_TIMEOUT_SECONDS:
+            client = anthropic.AsyncAnthropic(
+                api_key=settings.anthropic_api_key,
+                timeout=timeout,
+            )
 
         for attempt in range(MAX_RETRIES):
             try:
-                response = await self.client.messages.create(
+                response = await client.messages.create(
                     model=self.model,
                     max_tokens=max_tokens,
                     temperature=temperature,
                     system=system_prompt,
-                    messages=[{"role": "user", "content": user_message}],
+                    messages=messages,
                 )
                 # Claude returns a list of content blocks — we want the text from the first one
                 return response.content[0].text

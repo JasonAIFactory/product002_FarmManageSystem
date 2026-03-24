@@ -20,6 +20,11 @@ dependencies = [
     "reportlab>=4.0.0",
     "celery[redis]>=5.4.0",
     "redis>=5.0.0",
+    # Phase 3: Receipt image processing
+    "Pillow>=10.0.0",
+    "pillow-heif>=0.18.0",
+    # Phase 3: Financial report charts
+    "matplotlib>=3.8.0",
 ]
 
 [project.optional-dependencies]

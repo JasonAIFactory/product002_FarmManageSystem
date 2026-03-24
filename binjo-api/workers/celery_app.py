@@ -52,6 +52,11 @@ celery_app.conf.beat_schedule = {
         "task": "workers.tasks.cleanup_audio.cleanup_expired_recordings",
         "schedule": crontab(hour=3, minute=0),
     },
+    # Generate monthly P&L reports on 1st of each month at 6 AM UTC (3 PM KST)
+    "generate-monthly-reports": {
+        "task": "workers.tasks.generate_monthly_report.generate_all_monthly_reports",
+        "schedule": crontab(day_of_month=1, hour=6, minute=0),
+    },
 }
 
 # Auto-discover tasks in workers/tasks/

@@ -21,6 +21,11 @@ from app.models.farmer import Farmer  # noqa: F401
 from app.models.field import Field  # noqa: F401
 from app.models.voice_recording import VoiceRecording  # noqa: F401
 from app.models.farm_log import FarmLog, FarmLogTask, ChemicalUsage  # noqa: F401
+# Phase 3: Financial models
+from app.models.financial_transaction import FinancialTransaction  # noqa: F401
+from app.models.receipt_scan import ReceiptScan  # noqa: F401
+from app.models.monthly_report import MonthlyReport  # noqa: F401
+from app.models.sales_order import SalesOrder  # noqa: F401
 
 config = context.config
 
