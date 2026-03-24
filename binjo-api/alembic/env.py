@@ -26,6 +26,12 @@ from app.models.financial_transaction import FinancialTransaction  # noqa: F401
 from app.models.receipt_scan import ReceiptScan  # noqa: F401
 from app.models.monthly_report import MonthlyReport  # noqa: F401
 from app.models.sales_order import SalesOrder  # noqa: F401
+# Phase 4: Payment, shipping, customer, intelligence models
+from app.models.payment import Payment  # noqa: F401
+from app.models.shipping import Shipping  # noqa: F401
+from app.models.customer import Customer  # noqa: F401
+from app.models.analytics_snapshot import AnalyticsSnapshot  # noqa: F401
+from app.models.ai_insight import AiInsight  # noqa: F401
 
 config = context.config
 

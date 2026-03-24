@@ -43,6 +43,11 @@ class Settings(BaseSettings):
     supabase_url: str = ""
     supabase_service_role_key: str = ""
 
+    # TossPayments (Phase 4 — direct orders)
+    toss_client_key: str = ""  # Frontend SDK key
+    toss_secret_key: str = ""  # Server-side payment confirmation
+    toss_webhook_secret: str = ""  # Webhook HMAC verification
+
     # App
     debug: bool = False
     allowed_origins: str = "http://localhost:3000,http://localhost:3001"
