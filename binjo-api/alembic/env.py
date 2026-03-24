@@ -6,6 +6,7 @@ Pgbouncer in transaction mode can't handle DDL (CREATE TABLE, ALTER, etc).
 """
 
 import asyncio
+import ssl
 from logging.config import fileConfig
 
 from alembic import context
@@ -71,10 +72,16 @@ async def run_async_migrations() -> None:
     configuration = config.get_section(config.config_ini_section, {})
     configuration["sqlalchemy.url"] = _migration_url
 
+    # Supabase requires SSL; permissive context for Windows compatibility
+    ssl_context = ssl.create_default_context()
+    ssl_context.check_hostname = False
+    ssl_context.verify_mode = ssl.CERT_NONE
+
     connectable = async_engine_from_config(
         configuration,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
+        connect_args={"ssl": ssl_context},
     )
 
     async with connectable.connect() as connection:

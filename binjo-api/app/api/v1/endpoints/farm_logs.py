@@ -3,8 +3,10 @@ Farm log CRUD endpoints — create, read, update, delete, confirm.
 
 Farm logs can be created from voice pipeline results or manually.
 The flow: voice recording → parsed data → farmer reviews → creates farm log → confirms.
+Weather is auto-filled from 기상청 API on creation if not already present.
 """
 
+import logging
 from datetime import date
 from uuid import UUID
 
@@ -13,6 +15,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.external_api.weather_kma import format_weather_summary, get_weather_for_date
 from app.database import get_db
 from app.dependencies import get_current_farmer
 from app.models.farm_log import ChemicalUsage, FarmLog, FarmLogTask
@@ -25,6 +28,8 @@ from app.schemas.farm_log import (
     FarmLogUpdate,
     TaskResponse,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -109,12 +114,24 @@ async def create_farm_log(
     db: AsyncSession = Depends(get_db),
 ) -> FarmLogResponse:
     """Create a new farm log — from voice pipeline result or manual entry."""
+    # Auto-fill official weather if not already provided
+    # Best-effort: if KMA API fails, we still create the log without it
+    weather_official = None
+    try:
+        weather_data = await get_weather_for_date(body.log_date.isoformat())
+        if weather_data:
+            weather_data["summary"] = format_weather_summary(weather_data)
+            weather_official = weather_data
+    except Exception as e:
+        logger.warning("Weather auto-fill failed for %s: %s", body.log_date, e)
+
     log = FarmLog(
         farm_id=farmer.farm_id or farmer.id,  # fallback if farm_id not set
         farmer_id=farmer.id,
         voice_recording_id=UUID(body.voice_recording_id) if body.voice_recording_id else None,
         log_date=body.log_date,
         crop=body.crop,
+        weather_official=weather_official,
         weather_farmer=body.weather_farmer,
         notes=body.notes,
         status="draft",

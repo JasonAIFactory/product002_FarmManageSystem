@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     # Korean public APIs
     kma_api_key: str = ""  # 기상청 단기예보
 
+    # Redis (Celery task queue) — optional, falls back to sync processing
+    redis_url: str = ""
+
     # Supabase Storage (inherited from Phase 1)
     supabase_url: str = ""
     supabase_service_role_key: str = ""

@@ -1,16 +1,20 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getKakaoLoginUrl, loginWithKakao, isLoggedIn } from "@/lib/farmerApi";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002";
 
 /**
  * Kakao login page — one big yellow button.
  * After Kakao redirects back with a code, we exchange it for our JWT.
+ * In dev mode, a "Dev Login" button bypasses Kakao OAuth for testing.
  */
 export default function FarmerLoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [devLoading, setDevLoading] = useState(false);
 
   useEffect(() => {
     // Already logged in — redirect to dashboard
@@ -37,6 +41,24 @@ export default function FarmerLoginPage() {
     }
   };
 
+  const handleDevLogin = async () => {
+    setDevLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/auth/dev-login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nickname: "Test Farmer" }),
+      });
+      if (!res.ok) throw new Error("Dev login failed");
+      const data = await res.json();
+      localStorage.setItem("farmer_token", data.access_token);
+      router.replace("/farmer/dashboard");
+    } catch {
+      alert("Dev login 실패 — 백엔드가 실행 중인지 확인하세요.");
+    }
+    setDevLoading(false);
+  };
+
   return (
     <div
       className="min-h-screen flex flex-col items-center justify-center px-6"
@@ -57,6 +79,16 @@ export default function FarmerLoginPage() {
         style={{ backgroundColor: "#FEE500", color: "#000000" }}
       >
         카카오로 시작하기
+      </button>
+
+      {/* Dev login — only for local testing, bypasses Kakao OAuth */}
+      <button
+        onClick={handleDevLogin}
+        disabled={devLoading}
+        className="w-full max-w-sm py-3 rounded-xl text-sm font-medium mt-3 transition-opacity hover:opacity-90 disabled:opacity-50"
+        style={{ backgroundColor: "#E5E2DB", color: "#6B6B6B" }}
+      >
+        {devLoading ? "로그인 중..." : "🔧 Dev Login (테스트용)"}
       </button>
 
       <p className="text-xs mt-8 text-center max-w-xs" style={{ color: "#9B9B9B" }}>

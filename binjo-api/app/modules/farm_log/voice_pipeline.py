@@ -6,22 +6,46 @@ Pipeline stages:
 2. Transcribe with Whisper (STT)
 3. Post-process transcript (fix common mishearings)
 4. Parse with Claude (extract structured data)
-5. Return structured result for farmer review
+5. Auto-fill weather from 기상청 API
+6. Return structured result for farmer review
 
 Each stage updates the VoiceRecording status so the UI can show progress.
 """
 
 import json
+import logging
 import uuid
 from datetime import UTC, datetime, timedelta
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.ai.claude_provider import ClaudeProvider
+from app.core.external_api.weather_kma import (
+    format_weather_summary,
+    get_weather_for_date,
+)
 from app.core.stt.post_processor import correct_transcript
 from app.core.stt.whisper_api import transcribe_audio
 from app.models.voice_recording import VoiceRecording
 from app.modules.farm_log.parser_prompt import SYSTEM_PROMPT, build_user_message
+
+logger = logging.getLogger(__name__)
+
+
+async def _fetch_weather_for_log(log_date: str) -> dict:
+    """
+    Best-effort weather fetch — never fails the pipeline.
+    Weather is nice-to-have, not critical. If KMA API is down or
+    the key is missing, we return empty and the farmer can fill it manually.
+    """
+    try:
+        weather = await get_weather_for_date(log_date)
+        if weather:
+            weather["summary"] = format_weather_summary(weather)
+        return weather
+    except Exception as e:
+        logger.warning("Weather fetch failed for %s: %s", log_date, e)
+        return {}
 
 
 async def process_voice_recording(
@@ -68,10 +92,25 @@ async def process_voice_recording(
             temperature=0.0,
         )
 
-        # Claude should return pure JSON — parse it
-        parsed_data = json.loads(raw_response)
+        # Claude sometimes wraps JSON in markdown code blocks — strip them
+        cleaned_response = raw_response.strip()
+        if cleaned_response.startswith("```"):
+            # Remove ```json\n...\n``` wrapper
+            lines = cleaned_response.split("\n")
+            # Drop first line (```json) and last line (```)
+            lines = [l for l in lines if not l.strip().startswith("```")]
+            cleaned_response = "\n".join(lines).strip()
 
-        # Stage 5: Save results
+        parsed_data = json.loads(cleaned_response)
+
+        # Stage 5: Auto-fill weather from 기상청 API
+        # Uses the date Claude extracted from the transcript (defaults to today)
+        log_date = parsed_data.get("date", today_str)
+        weather_official = await _fetch_weather_for_log(log_date)
+        if weather_official:
+            parsed_data["weather_official"] = weather_official
+
+        # Stage 6: Save results
         recording.parsed_data = parsed_data
         recording.status = "completed"
         recording.processed_at = datetime.now(UTC)

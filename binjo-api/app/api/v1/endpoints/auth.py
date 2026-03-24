@@ -86,3 +86,42 @@ async def get_me(farmer: Farmer = Depends(get_current_farmer)) -> FarmerProfile:
         profile_image_url=farmer.profile_image_url,
         role=farmer.role,
     )
+
+
+@router.post("/dev-login", response_model=TokenResponse)
+async def dev_login(
+    body: dict,
+    db: AsyncSession = Depends(get_db),
+) -> TokenResponse:
+    """
+    Dev-only login — bypasses Kakao OAuth for local testing.
+    Creates or reuses a test farmer account and returns a JWT.
+    Only available when DEBUG=true.
+    """
+    from app.config import settings
+    if not settings.debug:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Not found",
+        )
+
+    nickname = body.get("nickname", "Test Farmer")
+    dev_kakao_id = "dev-test-farmer"
+
+    result = await db.execute(
+        select(Farmer).where(Farmer.kakao_id == dev_kakao_id)
+    )
+    farmer = result.scalar_one_or_none()
+
+    if farmer is None:
+        farmer = Farmer(
+            kakao_id=dev_kakao_id,
+            nickname=nickname,
+            role="farmer",
+        )
+        db.add(farmer)
+        await db.commit()
+        await db.refresh(farmer)
+
+    access_token = create_access_token(subject=str(farmer.id), role=farmer.role)
+    return TokenResponse(access_token=access_token)

@@ -6,6 +6,7 @@ The farmer selects a date range, and we generate the document.
 """
 
 from datetime import date
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import Response
@@ -66,11 +67,16 @@ async def export_farm_diary(
         date_to=date_to,
     )
 
-    filename = f"영농일지_{date_from}_{date_to}.pdf"
+    # ASCII filename for header compatibility + URL-encoded UTF-8 filename* for Korean
+    ascii_filename = f"farm_diary_{date_from}_{date_to}.pdf"
+    korean_filename = quote(f"영농일지_{date_from}_{date_to}.pdf")
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
         headers={
-            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Content-Disposition": (
+                f'attachment; filename="{ascii_filename}"; '
+                f"filename*=UTF-8''{korean_filename}"
+            ),
         },
     )

@@ -5,7 +5,7 @@
  * The base URL switches between local dev and production.
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002";
 
 function getToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -17,6 +17,7 @@ async function apiFetch<T>(
   options: RequestInit = {}
 ): Promise<T> {
   const token = getToken();
+  const url = `${API_BASE}/api/v1${path}`;
   const headers: Record<string, string> = {
     ...(options.headers as Record<string, string>),
   };
@@ -30,14 +31,33 @@ async function apiFetch<T>(
     headers["Content-Type"] = "application/json";
   }
 
-  const res = await fetch(`${API_BASE}/api/v1${path}`, {
-    ...options,
-    headers,
-  });
+  console.log(`[farmerApi] ${options.method || "GET"} ${url}`);
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      ...options,
+      headers,
+    });
+  } catch (err) {
+    // Network error — backend is down or CORS blocked
+    const message = err instanceof Error ? err.message : "알 수 없는 네트워크 오류";
+    console.error(`[farmerApi] NETWORK ERROR: ${options.method || "GET"} ${url}`, err);
+    throw new Error(`서버 연결 실패 (${API_BASE}): ${message}`);
+  }
 
   if (!res.ok) {
-    const error = await res.json().catch(() => ({ error: { message: "요청 실패" } }));
-    throw new Error(error.error?.message || error.detail?.message || `HTTP ${res.status}`);
+    const errorBody = await res.text().catch(() => "");
+    console.error(`[farmerApi] HTTP ${res.status}: ${options.method || "GET"} ${url}`, errorBody);
+    try {
+      const error = JSON.parse(errorBody);
+      throw new Error(error.error?.message || error.detail?.message || error.detail || `HTTP ${res.status}`);
+    } catch (parseErr) {
+      if (parseErr instanceof SyntaxError) {
+        throw new Error(`서버 오류 (HTTP ${res.status}): ${errorBody.slice(0, 200)}`);
+      }
+      throw parseErr;
+    }
   }
 
   // 204 No Content

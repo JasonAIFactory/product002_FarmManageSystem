@@ -3,15 +3,22 @@ Voice recording endpoints — upload, check status, get parsed results.
 
 Flow:
 1. POST /voice/upload — farmer uploads audio file
-2. Pipeline runs: Whisper STT → post-process → Claude parse
+2. Pipeline runs: Whisper STT → post-process → Claude parse → weather auto-fill
 3. GET /voice/{id}/status — check processing status
 4. GET /voice/{id}/result — get the structured farm log data
+
+When Redis is configured (REDIS_URL), voice processing is dispatched to a Celery
+worker for async processing. Without Redis, falls back to synchronous processing
+(acceptable for a single-farmer MVP).
 """
+
+import logging
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.core.storage.file_manager import upload_audio
 from app.database import get_db
 from app.dependencies import get_current_farmer
@@ -20,14 +27,17 @@ from app.models.voice_recording import VoiceRecording
 from app.modules.farm_log.voice_pipeline import process_voice_recording
 from app.schemas.voice import VoiceResultResponse, VoiceStatusResponse, VoiceUploadResponse
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
 
-# 5 minutes max recording, ~10MB
+# 5 minutes max recording
 MAX_AUDIO_SIZE = 25 * 1024 * 1024  # 25MB (Whisper API limit)
-ALLOWED_AUDIO_TYPES = {
-    "audio/webm", "audio/ogg", "audio/mpeg", "audio/mp4",
-    "audio/wav", "audio/x-wav", "audio/mp3",
-}
+
+
+def _is_celery_available() -> bool:
+    """Check if Celery can be used (Redis URL is configured)."""
+    return bool(settings.redis_url)
 
 
 @router.post("/upload", response_model=VoiceUploadResponse)
@@ -37,16 +47,22 @@ async def upload_voice(
     db: AsyncSession = Depends(get_db),
 ) -> VoiceUploadResponse:
     """
-    Upload a voice recording and process it through the STT + AI pipeline.
-    Currently synchronous — farmer waits for the result.
-    Will be async (Celery) in a future sprint when we need it.
+    Upload a voice recording and process it.
+
+    With Redis: dispatches to Celery worker (async, returns immediately).
+    Without Redis: processes synchronously (farmer waits ~10-15 seconds).
     """
-    # Validate file type
+    # Accept any audio/* type — Whisper handles all common formats
+    # Browser sends things like "audio/webm;codecs=opus" which is fine
     content_type = file.content_type or "audio/webm"
-    if content_type not in ALLOWED_AUDIO_TYPES:
+    base_type = content_type.split(";")[0].strip()
+    logger.info("Voice upload: content_type=%s, size=%d, filename=%s", content_type, 0, file.filename)
+
+    if not base_type.startswith("audio/"):
+        logger.warning("Rejected non-audio type: %s", content_type)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"code": "INVALID_TYPE", "message": "지원하지 않는 오디오 형식입니다"},
+            detail={"code": "INVALID_TYPE", "message": f"오디오 파일만 업로드 가능합니다 (받은 형식: {content_type})"},
         )
 
     # Read file bytes
@@ -78,7 +94,22 @@ async def upload_voice(
     await db.commit()
     await db.refresh(recording)
 
-    # Process synchronously for now — Celery later
+    # Async path: dispatch to Celery worker if Redis is available
+    if _is_celery_available():
+        from workers.tasks.process_voice import process_voice_recording_task
+
+        process_voice_recording_task.delay(
+            recording_id=str(recording.id),
+            audio_url=audio_url,
+        )
+        logger.info("Dispatched voice processing to Celery: %s", recording.id)
+        return VoiceUploadResponse(
+            id=str(recording.id),
+            status="processing",
+            message="음성을 처리하고 있습니다. 잠시만 기다려주세요.",
+        )
+
+    # Sync fallback: process inline (blocks the request)
     try:
         await process_voice_recording(
             db=db,
