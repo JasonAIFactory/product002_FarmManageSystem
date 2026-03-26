@@ -4,7 +4,10 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getKakaoLoginUrl, loginWithKakao, isLoggedIn } from "@/lib/farmerApi";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002";
+const API_BASE =
+  process.env.NODE_ENV === "production"
+    ? (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002")
+    : "/backend";
 
 /**
  * Kakao login page — one big yellow button.

@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { href: "/admin", label: "대시보드", icon: "🏠" },
   { href: "/admin/farm", label: "농장 정보", icon: "🌿" },
   { href: "/admin/products", label: "상품 관리", icon: "🍎" },
+  { href: "/admin/orders", label: "주문 관리", icon: "📦" },
   { href: "/admin/gallery", label: "사진 갤러리", icon: "📷" },
   { href: "/admin/reviews", label: "고객 후기", icon: "⭐" },
   { href: "/admin/calendar", label: "제철 달력", icon: "📅" },
@@ -96,6 +97,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               {loading ? "확인 중..." : "로그인"}
             </button>
           </form>
+          <button
+            onClick={() => {
+              setPassword("ㅇ");
+              setTimeout(() => {
+                const form = document.querySelector("form");
+                if (form) form.requestSubmit();
+              }, 50);
+            }}
+            className="w-full py-3 rounded-xl text-sm font-medium mt-3 transition-opacity hover:opacity-90"
+            style={{ backgroundColor: "#E5E2DB", color: "#6B6B6B" }}
+          >
+            🔧 Dev Login (테스트용)
+          </button>
         </div>
       </div>
     );

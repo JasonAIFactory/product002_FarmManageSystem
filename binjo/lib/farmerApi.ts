@@ -5,7 +5,12 @@
  * The base URL switches between local dev and production.
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002";
+// In dev, use Next.js rewrite proxy (/backend/*) to avoid CORS.
+// In production, call the API directly.
+const API_BASE =
+  process.env.NODE_ENV === "production"
+    ? (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002")
+    : "/backend";
 
 function getToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -188,4 +193,343 @@ export async function deleteFarmLog(id: string): Promise<void> {
 export function getExportUrl(dateFrom: string, dateTo: string): string {
   const token = getToken();
   return `${API_BASE}/api/v1/export/farm-diary?date_from=${dateFrom}&date_to=${dateTo}&token=${token}`;
+}
+
+// --- Transactions (Phase 3) ---
+
+export interface Transaction {
+  id: string;
+  type: "income" | "expense";
+  category: string;
+  amount: number;
+  description: string | null;
+  counterparty: string | null;
+  transaction_date: string;
+  source: string;
+  source_id: string | null;
+  farm_log_id: string | null;
+  status: string;
+  confidence: number | null;
+  receipt_image_url: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function listTransactions(params?: {
+  date_from?: string;
+  date_to?: string;
+  type?: string;
+  category?: string;
+  status?: string;
+}): Promise<{ transactions: Transaction[]; total: number }> {
+  const qs = new URLSearchParams();
+  if (params?.date_from) qs.set("date_from", params.date_from);
+  if (params?.date_to) qs.set("date_to", params.date_to);
+  if (params?.type) qs.set("type", params.type);
+  if (params?.category) qs.set("category", params.category);
+  if (params?.status) qs.set("status", params.status);
+  const q = qs.toString();
+  return apiFetch(`/transactions${q ? `?${q}` : ""}`);
+}
+
+export async function createTransaction(data: {
+  type: string;
+  category: string;
+  amount: number;
+  description?: string;
+  counterparty?: string;
+  transaction_date: string;
+  source?: string;
+  notes?: string;
+}): Promise<Transaction> {
+  return apiFetch("/transactions", {
+    method: "POST",
+    body: JSON.stringify({ source: "manual", ...data }),
+  });
+}
+
+export async function updateTransaction(
+  id: string,
+  data: Partial<{
+    type: string;
+    category: string;
+    amount: number;
+    description: string;
+    counterparty: string;
+    transaction_date: string;
+    notes: string;
+  }>
+): Promise<Transaction> {
+  return apiFetch(`/transactions/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function confirmTransaction(id: string): Promise<Transaction> {
+  return apiFetch(`/transactions/${id}/confirm`, { method: "PUT" });
+}
+
+export async function deleteTransaction(id: string): Promise<void> {
+  return apiFetch(`/transactions/${id}`, { method: "DELETE" });
+}
+
+// --- Receipts (Phase 3) ---
+
+export interface ParsedReceiptItem {
+  name: string;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+  category: string;
+  confidence: number;
+}
+
+export interface ParsedReceiptData {
+  store_name: string | null;
+  store_type: string | null;
+  date: string | null;
+  items: ParsedReceiptItem[];
+  total_amount: number;
+  payment_method: string | null;
+  overall_confidence: number;
+}
+
+export interface ReceiptResult {
+  receipt_scan_id: string;
+  status: string;
+  parsed_data: ParsedReceiptData | null;
+  transaction_ids: string[];
+  created_at: string;
+  processed_at: string | null;
+}
+
+export async function uploadReceipt(imageFile: File): Promise<{
+  receipt_scan_id: string;
+  status: string;
+  message: string;
+}> {
+  const formData = new FormData();
+  formData.append("file", imageFile);
+  return apiFetch("/receipts/upload", {
+    method: "POST",
+    body: formData,
+  });
+}
+
+export async function getReceiptStatus(scanId: string): Promise<{
+  receipt_scan_id: string;
+  status: string;
+  error_message: string | null;
+}> {
+  return apiFetch(`/receipts/${scanId}/status`);
+}
+
+export async function getReceiptResult(scanId: string): Promise<ReceiptResult> {
+  return apiFetch(`/receipts/${scanId}/result`);
+}
+
+// --- Financial Reports (Phase 3) ---
+
+export interface MonthlySummary {
+  year: number;
+  month: number;
+  total_income: number;
+  total_expense: number;
+  net_profit: number;
+  income_by_category: Record<string, number>;
+  expense_by_category: Record<string, number>;
+  status: string;
+  report_pdf_url: string | null;
+}
+
+export interface MonthlyTrend {
+  year: number;
+  month: number;
+  total_income: number;
+  total_expense: number;
+  net_profit: number;
+}
+
+export interface DashboardData {
+  current_month: MonthlySummary;
+  trend: MonthlyTrend[];
+  recent_transactions: Transaction[];
+}
+
+export async function getFinancialDashboard(): Promise<DashboardData> {
+  return apiFetch("/reports/dashboard");
+}
+
+export async function getMonthlyReport(
+  year: number,
+  month: number
+): Promise<MonthlySummary> {
+  return apiFetch(`/reports/monthly?year=${year}&month=${month}`);
+}
+
+export function getMonthlyPdfUrl(year: number, month: number): string {
+  const token = getToken();
+  return `${API_BASE}/api/v1/reports/monthly/pdf?year=${year}&month=${month}&token=${token}`;
+}
+
+// --- Orders (Phase 3-4) ---
+
+export interface SalesOrder {
+  id: string;
+  channel: string;
+  customer_name: string | null;
+  customer_phone: string | null;
+  product_name: string | null;
+  quantity: number;
+  weight_option: string | null;
+  unit_price: number | null;
+  total_amount: number | null;
+  status: string;
+  tracking_number: string | null;
+  shipped_at: string | null;
+  delivered_at: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function listAdminOrders(params?: {
+  status?: string;
+  channel?: string;
+}): Promise<SalesOrder[]> {
+  const qs = new URLSearchParams();
+  if (params?.status) qs.set("status", params.status);
+  if (params?.channel) qs.set("channel", params.channel);
+  const q = qs.toString();
+  return apiFetch(`/admin/orders${q ? `?${q}` : ""}`);
+}
+
+export async function confirmOrder(id: string): Promise<SalesOrder> {
+  return apiFetch(`/admin/orders/${id}/confirm`, { method: "PUT" });
+}
+
+export async function shipOrder(
+  id: string,
+  carrier: string,
+  trackingNumber: string
+): Promise<SalesOrder> {
+  return apiFetch(
+    `/admin/orders/${id}/ship?carrier=${encodeURIComponent(carrier)}&tracking_number=${encodeURIComponent(trackingNumber)}`,
+    { method: "PUT" }
+  );
+}
+
+export async function deliverOrder(id: string): Promise<SalesOrder> {
+  return apiFetch(`/admin/orders/${id}/deliver`, { method: "PUT" });
+}
+
+export async function cancelOrder(
+  id: string,
+  reason?: string
+): Promise<SalesOrder> {
+  const qs = reason ? `?reason=${encodeURIComponent(reason)}` : "";
+  return apiFetch(`/admin/orders/${id}/cancel${qs}`, { method: "PUT" });
+}
+
+// --- Customers (Phase 4) ---
+
+export interface Customer {
+  id: string;
+  phone: string;
+  name: string | null;
+  address: string | null;
+  total_orders: number;
+  total_spent: number;
+  first_order_at: string | null;
+  last_order_at: string | null;
+  preferred_products: string[];
+  notes: string | null;
+  created_at: string;
+}
+
+export async function listCustomers(): Promise<{
+  customers: Customer[];
+  total: number;
+}> {
+  return apiFetch("/admin/orders/customers");
+}
+
+// --- Public Checkout (Phase 4, no auth) ---
+
+const PUBLIC_API = API_BASE;
+
+export async function publicCheckout(data: {
+  product_name: string;
+  product_id?: string;
+  quantity: number;
+  weight_option?: string;
+  unit_price: number;
+  total_amount: number;
+  recipient_name: string;
+  recipient_phone: string;
+  postal_code?: string;
+  address: string;
+  address_detail?: string;
+  delivery_message?: string;
+}): Promise<{
+  order_id: string;
+  toss_order_id: string;
+  amount: number;
+  product_name: string;
+}> {
+  const res = await fetch(`${PUBLIC_API}/api/v1/payments/checkout`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail?.message || `결제 준비 실패 (HTTP ${res.status})`);
+  }
+  return res.json();
+}
+
+export async function publicConfirmPayment(data: {
+  payment_key: string;
+  order_id: string;
+  amount: number;
+}): Promise<{
+  id: string;
+  order_id: string;
+  toss_order_id: string;
+  amount: number;
+  status: string;
+}> {
+  const res = await fetch(`${PUBLIC_API}/api/v1/payments/confirm`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail?.message || `결제 확인 실패 (HTTP ${res.status})`);
+  }
+  return res.json();
+}
+
+export async function publicGetOrderStatus(orderId: string): Promise<{
+  order_id: string;
+  status: string;
+  product_name: string | null;
+  total_amount: number | null;
+  payment_status: string | null;
+  tracking_number: string | null;
+  carrier: string | null;
+  created_at: string;
+}> {
+  const res = await fetch(
+    `${PUBLIC_API}/api/v1/payments/orders/${orderId}/status`
+  );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail?.message || `주문 조회 실패`);
+  }
+  return res.json();
 }

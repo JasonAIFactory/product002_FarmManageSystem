@@ -8,6 +8,9 @@ const NAV_ITEMS = [
   { href: "/farmer/dashboard", label: "홈", icon: "🏠" },
   { href: "/farmer/record", label: "기록", icon: "🎤" },
   { href: "/farmer/logs", label: "일지", icon: "📋" },
+  { href: "/farmer/finance", label: "가계부", icon: "💰" },
+  { href: "/farmer/receipt", label: "영수증", icon: "📷" },
+  { href: "/farmer/insights", label: "인사이트", icon: "📊" },
 ];
 
 export default function FarmerLayout({ children }: { children: React.ReactNode }) {
@@ -15,6 +18,7 @@ export default function FarmerLayout({ children }: { children: React.ReactNode }
   const pathname = usePathname();
   const [nickname, setNickname] = useState<string>("");
   const [checking, setChecking] = useState(true);
+  const [moreOpen, setMoreOpen] = useState(false);
 
   useEffect(() => {
     // Check auth status
@@ -84,25 +88,67 @@ export default function FarmerLayout({ children }: { children: React.ReactNode }
       {/* Content */}
       <main className="pb-20">{children}</main>
 
-      {/* Bottom nav — mobile-first, 3 tabs */}
+      {/* Bottom nav — mobile-first, first 4 tabs + "more" */}
       <nav
-        className="fixed bottom-0 left-0 right-0 z-50 flex border-t"
+        className="fixed bottom-0 left-0 right-0 z-50 border-t"
         style={{ backgroundColor: "#FFFFFF", borderColor: "#E5E2DB" }}
       >
-        {NAV_ITEMS.map((item) => {
-          const active = pathname === item.href;
-          return (
-            <button
-              key={item.href}
-              onClick={() => router.push(item.href)}
-              className="flex-1 flex flex-col items-center py-2 transition-colors"
-              style={{ color: active ? "#2D5016" : "#9B9B9B" }}
+        {/* "More" popup */}
+        {moreOpen && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setMoreOpen(false)} />
+            <div
+              className="absolute bottom-full left-0 right-0 z-50 rounded-t-2xl shadow-lg p-4 grid grid-cols-3 gap-3"
+              style={{ backgroundColor: "#FFFFFF", borderTop: "1px solid #E5E2DB" }}
             >
-              <span className="text-xl">{item.icon}</span>
-              <span className="text-[10px] mt-0.5 font-medium">{item.label}</span>
-            </button>
-          );
-        })}
+              {NAV_ITEMS.slice(4).map((item) => {
+                const active = pathname === item.href;
+                return (
+                  <button
+                    key={item.href}
+                    onClick={() => { router.push(item.href); setMoreOpen(false); }}
+                    className="flex flex-col items-center gap-1 py-3 rounded-xl text-xs font-medium"
+                    style={{
+                      backgroundColor: active ? "#EDF4E8" : "transparent",
+                      color: active ? "#2D5016" : "#6B6B6B",
+                    }}
+                  >
+                    <span className="text-xl">{item.icon}</span>
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
+        <div className="flex">
+          {NAV_ITEMS.slice(0, 4).map((item) => {
+            const active = pathname === item.href;
+            return (
+              <button
+                key={item.href}
+                onClick={() => { router.push(item.href); setMoreOpen(false); }}
+                className="flex-1 flex flex-col items-center py-2 transition-colors"
+                style={{ color: active ? "#2D5016" : "#9B9B9B" }}
+              >
+                <span className="text-xl">{item.icon}</span>
+                <span className="text-[10px] mt-0.5 font-medium">{item.label}</span>
+              </button>
+            );
+          })}
+          <button
+            onClick={() => setMoreOpen(!moreOpen)}
+            className="flex-1 flex flex-col items-center py-2 transition-colors"
+            style={{
+              color: moreOpen || NAV_ITEMS.slice(4).some((i) => pathname === i.href)
+                ? "#2D5016"
+                : "#9B9B9B",
+            }}
+          >
+            <span className="text-xl">&#8943;</span>
+            <span className="text-[10px] mt-0.5 font-medium">더보기</span>
+          </button>
+        </div>
       </nav>
     </div>
   );

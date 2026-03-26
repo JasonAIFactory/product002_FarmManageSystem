@@ -110,11 +110,22 @@ function ProductCard({ product }: { product: ProductItem }) {
                 </p>
                 <div className="space-y-1">
                   {priceOptions.map((opt, i) => (
-                    <div key={i} className="flex justify-between text-sm">
+                    <div key={i} className="flex justify-between items-center text-sm">
                       <span style={{ color: "#1A1A1A" }}>{opt.weight}</span>
-                      <span className="font-bold" style={{ color: "#D4421E" }}>
-                        {opt.price.toLocaleString()}원
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className="font-bold" style={{ color: "#D4421E" }}>
+                          {opt.price.toLocaleString()}원
+                        </span>
+                        {product.is_available && (
+                          <a
+                            href={`/checkout?product=${encodeURIComponent(product.name)}&productId=${product.id}&weight=${encodeURIComponent(opt.weight)}&price=${opt.price}`}
+                            className="px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-transform hover:scale-105 active:scale-95"
+                            style={{ backgroundColor: "#D4421E" }}
+                          >
+                            바로 주문
+                          </a>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>

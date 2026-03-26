@@ -1,0 +1,28 @@
+services:
+  # FastAPI backend — port 8082 (avoids 8002 conflict)
+  api:
+    build:
+      context: ./binjo-api
+      dockerfile: Dockerfile
+    ports:
+      - "8082:8000"
+    env_file:
+      - ./binjo-api/.env
+    environment:
+      - PORT=8000
+    restart: unless-stopped
+
+  # Next.js frontend — port 3080 (avoids 3000-3003 conflicts)
+  web:
+    build:
+      context: ./binjo
+      dockerfile: Dockerfile
+    ports:
+      - "3080:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8082
+    env_file:
+      - ./binjo/.env
+    depends_on:
+      - api
+    restart: unless-stopped
