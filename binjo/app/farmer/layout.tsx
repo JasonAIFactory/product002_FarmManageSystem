@@ -6,7 +6,8 @@ import { isLoggedIn, getMyProfile, logout } from "@/lib/farmerApi";
 
 const NAV_ITEMS = [
   { href: "/farmer/dashboard", label: "홈", icon: "🏠" },
-  { href: "/farmer/record", label: "기록", icon: "🎤" },
+  { href: "/farmer/record", label: "기록", icon: "✏️" },
+  { href: "/farmer/calendar", label: "달력", icon: "📅" },
   { href: "/farmer/logs", label: "일지", icon: "📋" },
   { href: "/farmer/finance", label: "가계부", icon: "💰" },
   { href: "/farmer/receipt", label: "영수증", icon: "📷" },

@@ -188,6 +188,50 @@ export async function deleteFarmLog(id: string): Promise<void> {
   return apiFetch(`/farm-logs/${id}`, { method: "DELETE" });
 }
 
+// --- Fields (필지) ---
+
+export interface Field {
+  id: string;
+  name: string;
+  area_pyeong: number | null;
+  crop: string;
+  address: string | null;
+  notes: string | null;
+  created_at: string;
+}
+
+export async function listFields(): Promise<Field[]> {
+  return apiFetch("/fields");
+}
+
+export async function createField(data: {
+  name: string;
+  area_pyeong?: number;
+  crop?: string;
+  address?: string;
+  notes?: string;
+}): Promise<Field> {
+  return apiFetch("/fields", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+// --- Weather ---
+
+export interface WeatherData {
+  temperature: number | null;
+  humidity: number | null;
+  precipitation: string | null;
+  wind_speed: number | null;
+  sky: string | null;
+  summary: string | null;
+}
+
+export async function getCurrentWeather(): Promise<WeatherData> {
+  return apiFetch("/weather/current");
+}
+
 // --- Export ---
 
 export function getExportUrl(dateFrom: string, dateTo: string): string {
