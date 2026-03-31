@@ -217,6 +217,46 @@ export async function createField(data: {
   });
 }
 
+// --- Pesticides (농약 안전사용기준) ---
+
+export interface PesticideInfo {
+  id: string;
+  name_kr: string;
+  name_en: string;
+  type: string;
+  safety_days: number;
+  dilution_ratio: string;
+  target: string[];
+  season: string[];
+  notes: string;
+}
+
+export interface SafeHarvestResult {
+  pesticide: string;
+  safety_days: number;
+  spray_date: string;
+  safe_harvest_date: string;
+  days_remaining: number;
+  is_safe: boolean;
+}
+
+export async function listPesticides(): Promise<PesticideInfo[]> {
+  return apiFetch("/pesticides/");
+}
+
+export async function lookupPesticide(name: string): Promise<PesticideInfo> {
+  return apiFetch(`/pesticides/lookup?name=${encodeURIComponent(name)}`);
+}
+
+export async function checkSafeHarvest(
+  sprayDate: string,
+  pesticideName: string
+): Promise<SafeHarvestResult> {
+  return apiFetch(
+    `/pesticides/safe-harvest?spray_date=${sprayDate}&pesticide_name=${encodeURIComponent(pesticideName)}`
+  );
+}
+
 // --- Weather ---
 
 export interface WeatherData {

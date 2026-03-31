@@ -16,7 +16,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.dependencies import get_current_farmer
+from app.dependencies import get_current_farmer, get_current_farmer_or_token
 from app.models.farmer import Farmer
 from app.models.financial_transaction import FinancialTransaction
 from app.modules.bookkeeping.chart_generator import generate_trend_chart
@@ -107,7 +107,7 @@ async def get_monthly_report(
 async def download_monthly_pdf(
     year: int = Query(..., ge=2020, le=2100),
     month: int = Query(..., ge=1, le=12),
-    farmer: Farmer = Depends(get_current_farmer),
+    farmer: Farmer = Depends(get_current_farmer_or_token),
     db: AsyncSession = Depends(get_db),
 ) -> Response:
     """Download a monthly P&L report as PDF."""

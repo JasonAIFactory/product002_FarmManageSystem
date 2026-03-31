@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.database import get_db
-from app.dependencies import get_current_farmer
+from app.dependencies import get_current_farmer_or_token
 from app.models.farm_log import FarmLog
 from app.models.farmer import Farmer
 from app.modules.farm_log.pdf_exporter import generate_farm_diary_pdf
@@ -27,7 +27,7 @@ router = APIRouter()
 async def export_farm_diary(
     date_from: date = Query(..., description="시작일 (YYYY-MM-DD)"),
     date_to: date = Query(..., description="종료일 (YYYY-MM-DD)"),
-    farmer: Farmer = Depends(get_current_farmer),
+    farmer: Farmer = Depends(get_current_farmer_or_token),
     db: AsyncSession = Depends(get_db),
 ) -> Response:
     """Export confirmed farm logs as 영농일지 PDF."""

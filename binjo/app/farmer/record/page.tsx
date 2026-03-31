@@ -10,9 +10,13 @@ import {
   createFarmLog,
   uploadVoice,
   getVoiceResult,
+  listPesticides,
+  checkSafeHarvest,
   type WeatherData,
   type Field,
   type ParsedFarmLog,
+  type PesticideInfo,
+  type SafeHarvestResult,
 } from "@/lib/farmerApi";
 
 // --- Types ---
@@ -72,6 +76,11 @@ export default function RecordPage() {
   const [fields, setFields] = useState<Field[]>([]);
   const [fieldsLoading, setFieldsLoading] = useState(true);
 
+  // --- Pesticides ---
+  const [pesticides, setPesticides] = useState<PesticideInfo[]>([]);
+  const [pesticideMatches, setPesticideMatches] = useState<PesticideInfo[]>([]);
+  const [safetyWarning, setSafetyWarning] = useState<SafeHarvestResult | null>(null);
+
   // --- Task detail panel ---
   const [activeTask, setActiveTask] = useState<typeof TASK_BUTTONS[number] | null>(null);
   const [selectedFieldName, setSelectedFieldName] = useState<string | null>(null);
@@ -118,7 +127,38 @@ export default function RecordPage() {
         console.error("[RecordPage] Failed to fetch fields:", err);
       })
       .finally(() => setFieldsLoading(false));
+
+    listPesticides()
+      .then(setPesticides)
+      .catch((err) => {
+        console.error("[RecordPage] Failed to fetch pesticides:", err);
+      });
   }, []);
+
+  // --- Pesticide autocomplete ---
+  const handleChemicalNameChange = (value: string) => {
+    setChemicalName(value);
+    setSafetyWarning(null);
+    if (value.length >= 1) {
+      const matches = pesticides.filter(
+        (p) => p.name_kr.includes(value) || value.includes(p.name_kr)
+      );
+      setPesticideMatches(matches);
+    } else {
+      setPesticideMatches([]);
+    }
+  };
+
+  const selectPesticide = (p: PesticideInfo) => {
+    setChemicalName(p.name_kr);
+    setDilutionRatio(p.dilution_ratio);
+    setPesticideMatches([]);
+    // Check safe harvest date
+    const today = new Date().toISOString().split("T")[0];
+    checkSafeHarvest(today, p.name_kr)
+      .then(setSafetyWarning)
+      .catch(() => {});
+  };
 
   // --- Today's date in Korean ---
   const todayFormatted = new Date().toLocaleDateString("ko-KR", {
@@ -604,28 +644,90 @@ export default function RecordPage() {
                   </div>
                 </div>
 
-                {/* 방제 (pest control) specific fields */}
+                {/* 방제 (pest control) specific fields — with pesticide autocomplete */}
                 {activeTask.stage === "방제" && (
                   <div className="mb-5 space-y-4">
-                    <div
-                      className="rounded-xl p-3 text-xs"
-                      style={{ backgroundColor: "#FEF3E2", color: "#D4421E" }}
-                    >
-                      ⚠️ 농약 사용 시 안전사용기준을 반드시 확인하세요
-                    </div>
                     <div>
                       <label className="text-xs font-semibold mb-2 block" style={{ color: "#6B6B6B" }}>
                         약제명
                       </label>
-                      <input
-                        type="text"
-                        value={chemicalName}
-                        onChange={(e) => setChemicalName(e.target.value)}
-                        placeholder="예: 석회유황합제"
-                        className="w-full px-4 py-3 rounded-xl text-sm border-none outline-none"
-                        style={{ backgroundColor: "#F5F1EC", color: "#1A1A1A" }}
-                      />
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={chemicalName}
+                          onChange={(e) => handleChemicalNameChange(e.target.value)}
+                          placeholder="예: 석회유황합제 (입력하면 자동 추천)"
+                          className="w-full px-4 py-3 rounded-xl text-sm border-none outline-none"
+                          style={{ backgroundColor: "#F5F1EC", color: "#1A1A1A" }}
+                        />
+                        {/* Autocomplete dropdown */}
+                        {pesticideMatches.length > 0 && (
+                          <div
+                            className="absolute left-0 right-0 top-full mt-1 rounded-xl shadow-lg z-10 max-h-48 overflow-y-auto"
+                            style={{ backgroundColor: "#FFFFFF", border: "1px solid #E5E2DB" }}
+                          >
+                            {pesticideMatches.map((p) => (
+                              <button
+                                key={p.id}
+                                onClick={() => selectPesticide(p)}
+                                className="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 border-b last:border-b-0"
+                                style={{ borderColor: "#F5F1EC" }}
+                              >
+                                <span className="font-medium" style={{ color: "#1A1A1A" }}>
+                                  {p.name_kr}
+                                </span>
+                                <span className="ml-2 text-xs" style={{ color: "#9B9B9B" }}>
+                                  {p.type} · {p.dilution_ratio} · 안전기간 {p.safety_days}일
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      {/* Show all pesticides as chips when input is empty */}
+                      {!chemicalName && pesticides.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {pesticides.slice(0, 6).map((p) => (
+                            <button
+                              key={p.id}
+                              onClick={() => selectPesticide(p)}
+                              className="px-3 py-1.5 rounded-full text-xs"
+                              style={{ backgroundColor: "#F5F1EC", color: "#6B6B6B" }}
+                            >
+                              {p.name_kr}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
+
+                    {/* Safety warning — shown after selecting a pesticide */}
+                    {safetyWarning && (
+                      <div
+                        className="rounded-xl p-3 text-sm"
+                        style={{
+                          backgroundColor: safetyWarning.is_safe ? "#EDF4E8" : "#FEF3E2",
+                          color: safetyWarning.is_safe ? "#2D5016" : "#D4421E",
+                        }}
+                      >
+                        {safetyWarning.is_safe ? (
+                          <p>✅ 안전기간 경과 — 수확 가능</p>
+                        ) : (
+                          <>
+                            <p className="font-bold">
+                              ⚠️ 안전기간 {safetyWarning.safety_days}일
+                            </p>
+                            <p className="mt-1">
+                              오늘 살포 시 수확 가능일: <strong>{safetyWarning.safe_harvest_date}</strong>
+                            </p>
+                            <p>
+                              남은 기간: <strong>{safetyWarning.days_remaining}일</strong>
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    )}
+
                     <div>
                       <label className="text-xs font-semibold mb-2 block" style={{ color: "#6B6B6B" }}>
                         희석 배수

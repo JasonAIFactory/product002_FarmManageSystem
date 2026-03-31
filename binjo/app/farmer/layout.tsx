@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { href: "/farmer/calendar", label: "달력", icon: "📅" },
   { href: "/farmer/logs", label: "일지", icon: "📋" },
   { href: "/farmer/finance", label: "가계부", icon: "💰" },
+  { href: "/farmer/fields", label: "필지", icon: "🌳" },
   { href: "/farmer/receipt", label: "영수증", icon: "📷" },
   { href: "/farmer/insights", label: "인사이트", icon: "📊" },
 ];
