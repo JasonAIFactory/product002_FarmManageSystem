@@ -15,6 +15,7 @@ from app.config import settings
 
 AUDIO_BUCKET = "audio"
 RECEIPTS_BUCKET = "receipts"
+FARM_PHOTOS_BUCKET = "farm-photos"
 
 # Map content types to file extensions for clean storage paths
 _EXTENSION_MAP = {
@@ -76,3 +77,15 @@ async def upload_image(image_bytes: bytes, content_type: str) -> str:
 async def delete_image(url: str) -> None:
     """Delete a receipt image from Supabase Storage by its URL."""
     _delete_from_bucket(RECEIPTS_BUCKET, url)
+
+
+# --- Farm log photos ---
+
+async def upload_farm_photo(image_bytes: bytes, content_type: str) -> str:
+    """Upload a farm log photo to Supabase Storage. Returns the public URL."""
+    return _upload_to_bucket(FARM_PHOTOS_BUCKET, image_bytes, content_type)
+
+
+async def delete_farm_photo(url: str) -> None:
+    """Delete a farm log photo from Supabase Storage by its URL."""
+    _delete_from_bucket(FARM_PHOTOS_BUCKET, url)

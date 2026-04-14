@@ -382,8 +382,8 @@ export default function CalendarPage() {
                 </h3>
                 <button
                   onClick={() => setSelectedDate(null)}
-                  className="text-lg"
-                  style={{ color: "#9B9B9B" }}
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-lg"
+                  style={{ color: "#9B9B9B", backgroundColor: "#F5F1EC" }}
                   aria-label="닫기"
                 >
                   ✕
@@ -397,8 +397,8 @@ export default function CalendarPage() {
                   </p>
                   <button
                     onClick={() => router.push("/farmer/record")}
-                    className="text-sm px-5 py-2.5 rounded-xl font-medium"
-                    style={{ backgroundColor: "#2D5016", color: "#FFFFFF" }}
+                    className="text-sm px-5 py-3 rounded-xl font-medium"
+                    style={{ backgroundColor: "#2D5016", color: "#FFFFFF", minHeight: "44px" }}
                   >
                     기록 추가
                   </button>

@@ -301,7 +301,7 @@ export default function LogsPage() {
                 <button
                   key={stage}
                   onClick={() => setActiveStage(stage)}
-                  className="shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all"
+                  className="shrink-0 px-4 py-2.5 rounded-full text-xs font-medium transition-all"
                   style={{
                     backgroundColor: isActive ? "#2D5016" : "#FFFFFF",
                     color: isActive ? "#FFFFFF" : "#6B6B6B",
@@ -330,7 +330,7 @@ export default function LogsPage() {
                 <button
                   key={range}
                   onClick={() => setDateRange(range)}
-                  className="px-3 py-1.5 text-xs font-medium transition-all"
+                  className="px-4 py-2.5 text-xs font-medium transition-all"
                   style={{
                     backgroundColor: isActive ? "#2D5016" : "#FFFFFF",
                     color: isActive ? "#FFFFFF" : "#6B6B6B",
@@ -370,8 +370,8 @@ export default function LogsPage() {
             </p>
             <button
               onClick={fetchLogs}
-              className="text-xs px-4 py-2 rounded-lg font-medium text-white"
-              style={{ backgroundColor: "#2D5016" }}
+              className="text-xs px-5 py-3 rounded-lg font-medium text-white"
+              style={{ backgroundColor: "#2D5016", minHeight: "44px" }}
             >
               다시 시도
             </button>
@@ -413,8 +413,8 @@ export default function LogsPage() {
                 setActiveStage("전체");
                 setDateRange("all");
               }}
-              className="mt-3 text-xs px-4 py-2 rounded-lg font-medium"
-              style={{ backgroundColor: "#EDF4E8", color: "#2D5016" }}
+              className="mt-3 text-xs px-5 py-3 rounded-lg font-medium"
+              style={{ backgroundColor: "#EDF4E8", color: "#2D5016", minHeight: "44px" }}
             >
               필터 초기화
             </button>
@@ -575,7 +575,7 @@ export default function LogsPage() {
               </div>
               <button
                 onClick={() => !actionLoading && setSelectedLog(null)}
-                className="w-8 h-8 flex items-center justify-center rounded-full"
+                className="w-10 h-10 flex items-center justify-center rounded-full"
                 style={{ backgroundColor: "#F5F1EC", color: "#9B9B9B" }}
               >
                 ✕
@@ -744,6 +744,35 @@ export default function LogsPage() {
                   >
                     {selectedLog.notes}
                   </p>
+                </div>
+              )}
+
+              {/* Photos */}
+              {selectedLog.photo_urls && selectedLog.photo_urls.length > 0 && (
+                <div>
+                  <p
+                    className="text-xs font-semibold mb-2 uppercase tracking-wide"
+                    style={{ color: "#9B9B9B" }}
+                  >
+                    사진 ({selectedLog.photo_urls.length})
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedLog.photo_urls.map((url, i) => (
+                      <a
+                        key={i}
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block w-20 h-20 rounded-xl overflow-hidden"
+                      >
+                        <img
+                          src={url}
+                          alt={`사진 ${i + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </a>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

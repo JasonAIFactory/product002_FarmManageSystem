@@ -66,6 +66,7 @@ class FarmLogResponse(BaseModel):
     weather_official: dict | None = None
     weather_farmer: str | None = None
     notes: str | None = None
+    photo_urls: list[str] = []
     voice_recording_id: str | None = None
     created_at: datetime
     updated_at: datetime
@@ -74,3 +75,8 @@ class FarmLogResponse(BaseModel):
 class FarmLogListResponse(BaseModel):
     logs: list[FarmLogResponse]
     total: int
+
+
+class PhotoUploadResponse(BaseModel):
+    photo_urls: list[str]
+    message: str

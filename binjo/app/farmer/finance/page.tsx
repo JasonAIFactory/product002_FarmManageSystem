@@ -243,8 +243,8 @@ export default function FinanceDashboardPage() {
           </p>
           <a
             href="/farmer/transactions"
-            className="text-xs font-medium"
-            style={{ color: "#2D5016" }}
+            className="text-xs font-medium px-3 py-2 rounded-lg inline-flex items-center"
+            style={{ color: "#2D5016", minHeight: "44px" }}
           >
             전체 보기 &rarr;
           </a>

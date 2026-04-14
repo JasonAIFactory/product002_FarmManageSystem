@@ -188,7 +188,7 @@ export default function FarmerDashboard() {
                   {days[d.getDay()]}
                 </span>
                 <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium"
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-medium"
                   style={{
                     backgroundColor: hasLog ? "#2D5016" : "#F5F1EC",
                     color: hasLog ? "#fff" : "#9B9B9B",
@@ -209,8 +209,8 @@ export default function FarmerDashboard() {
             <p className="text-sm font-bold" style={{ color: "#1A1A1A" }}>최근 30일 작업</p>
             <button
               onClick={() => router.push("/farmer/calendar")}
-              className="text-xs"
-              style={{ color: "#2D5016" }}
+              className="text-xs px-3 py-2 rounded-lg"
+              style={{ color: "#2D5016", minHeight: "44px" }}
             >
               달력 보기 →
             </button>
@@ -243,8 +243,8 @@ export default function FarmerDashboard() {
           <p className="text-sm font-bold" style={{ color: "#1A1A1A" }}>최근 기록</p>
           <button
             onClick={() => router.push("/farmer/logs")}
-            className="text-xs"
-            style={{ color: "#2D5016" }}
+            className="text-xs px-3 py-2 rounded-lg"
+            style={{ color: "#2D5016", minHeight: "44px" }}
           >
             전체 보기 →
           </button>
@@ -261,8 +261,8 @@ export default function FarmerDashboard() {
             </p>
             <button
               onClick={() => router.push("/farmer/record")}
-              className="mt-2 text-xs font-medium px-4 py-2 rounded-lg"
-              style={{ backgroundColor: "#EDF4E8", color: "#2D5016" }}
+              className="mt-2 text-xs font-medium px-6 py-3 rounded-lg"
+              style={{ backgroundColor: "#EDF4E8", color: "#2D5016", minHeight: "44px" }}
             >
               첫 기록 남기기
             </button>

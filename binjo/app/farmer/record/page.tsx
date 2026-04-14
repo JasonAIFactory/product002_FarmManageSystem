@@ -8,6 +8,7 @@ import {
   getCurrentWeather,
   listFields,
   createFarmLog,
+  uploadFarmLogPhotos,
   uploadVoice,
   getVoiceResult,
   listPesticides,
@@ -263,7 +264,7 @@ export default function RecordPage() {
           action: "시비",
         }));
 
-      await createFarmLog({
+      const log = await createFarmLog({
         log_date: todayISO,
         crop: "사과", // Default crop — apple farm
         tasks: tasks.map((t) => ({
@@ -277,6 +278,16 @@ export default function RecordPage() {
           : undefined,
         notes: notes.trim() || undefined,
       });
+
+      // Upload photos after creating the log — needs the log ID
+      if (photos.length > 0) {
+        try {
+          await uploadFarmLogPhotos(log.id, photos);
+        } catch (photoErr) {
+          // Log saved but photos failed — don't block the save
+          console.error("[record] Photo upload failed:", photoErr);
+        }
+      }
 
       setPageState("saved");
     } catch (err) {
@@ -315,7 +326,7 @@ export default function RecordPage() {
 
     setPageState("saving");
     try {
-      await createFarmLog({
+      const log = await createFarmLog({
         voice_recording_id: recordingId || undefined,
         log_date: parsedData.date,
         crop: parsedData.crop,
@@ -333,6 +344,16 @@ export default function RecordPage() {
         weather_farmer: parsedData.weather_farmer || undefined,
         notes: parsedData.notes || undefined,
       });
+
+      // Upload photos if any were selected before voice recording
+      if (photos.length > 0) {
+        try {
+          await uploadFarmLogPhotos(log.id, photos);
+        } catch (photoErr) {
+          console.error("[record] Photo upload failed:", photoErr);
+        }
+      }
+
       setPageState("saved");
     } catch (err) {
       setError(err instanceof Error ? err.message : "저장에 실패했습니다.");
@@ -588,12 +609,13 @@ export default function RecordPage() {
                               selectedFieldName === field.name ? null : field.name
                             )
                           }
-                          className="px-4 py-2 rounded-full text-sm font-medium transition-colors"
+                          className="px-4 py-2.5 rounded-full text-sm font-medium transition-colors"
                           style={{
                             backgroundColor:
                               selectedFieldName === field.name ? "#2D5016" : "#F5F1EC",
                             color:
                               selectedFieldName === field.name ? "#FFFFFF" : "#2D5016",
+                            minHeight: "44px",
                           }}
                         >
                           {field.name}
@@ -691,8 +713,8 @@ export default function RecordPage() {
                             <button
                               key={p.id}
                               onClick={() => selectPesticide(p)}
-                              className="px-3 py-1.5 rounded-full text-xs"
-                              style={{ backgroundColor: "#F5F1EC", color: "#6B6B6B" }}
+                              className="px-3 py-2 rounded-full text-xs"
+                              style={{ backgroundColor: "#F5F1EC", color: "#6B6B6B", minHeight: "40px" }}
                             >
                               {p.name_kr}
                             </button>
@@ -914,7 +936,7 @@ export default function RecordPage() {
                   />
                   <button
                     onClick={() => removePhoto(i)}
-                    className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full flex items-center justify-center text-xs text-white"
+                    className="absolute -top-2 -right-2 w-8 h-8 rounded-full flex items-center justify-center text-xs text-white"
                     style={{ backgroundColor: "#D4421E" }}
                   >
                     ✕

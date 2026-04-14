@@ -150,6 +150,7 @@ export interface FarmLog {
   weather_official: Record<string, unknown> | null;
   weather_farmer: string | null;
   notes: string | null;
+  photo_urls: string[];
   created_at: string;
   updated_at: string;
 }
@@ -186,6 +187,30 @@ export async function confirmFarmLog(id: string): Promise<FarmLog> {
 
 export async function deleteFarmLog(id: string): Promise<void> {
   return apiFetch(`/farm-logs/${id}`, { method: "DELETE" });
+}
+
+export async function uploadFarmLogPhotos(
+  logId: string,
+  photos: File[]
+): Promise<{ photo_urls: string[]; message: string }> {
+  const formData = new FormData();
+  for (const photo of photos) {
+    formData.append("files", photo);
+  }
+  return apiFetch(`/farm-logs/${logId}/photos`, {
+    method: "POST",
+    body: formData,
+  });
+}
+
+export async function deleteFarmLogPhoto(
+  logId: string,
+  photoUrl: string
+): Promise<{ photo_urls: string[]; message: string }> {
+  const params = new URLSearchParams({ photo_url: photoUrl });
+  return apiFetch(`/farm-logs/${logId}/photos?${params}`, {
+    method: "DELETE",
+  });
 }
 
 // --- Fields (필지) ---

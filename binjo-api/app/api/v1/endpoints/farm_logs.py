@@ -10,7 +10,7 @@ import logging
 from datetime import date
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -20,12 +20,14 @@ from app.database import get_db
 from app.dependencies import get_current_farmer
 from app.models.farm_log import ChemicalUsage, FarmLog, FarmLogTask
 from app.models.farmer import Farmer
+from app.core.storage.file_manager import delete_farm_photo, upload_farm_photo
 from app.schemas.farm_log import (
     ChemicalResponse,
     FarmLogCreate,
     FarmLogListResponse,
     FarmLogResponse,
     FarmLogUpdate,
+    PhotoUploadResponse,
     TaskResponse,
 )
 
@@ -64,6 +66,7 @@ def _log_to_response(log: FarmLog) -> FarmLogResponse:
         weather_official=log.weather_official,
         weather_farmer=log.weather_farmer,
         notes=log.notes,
+        photo_urls=log.photo_urls or [],
         voice_recording_id=str(log.voice_recording_id) if log.voice_recording_id else None,
         created_at=log.created_at,
         updated_at=log.updated_at,
@@ -317,5 +320,140 @@ async def delete_farm_log(
             detail={"code": "NOT_FOUND", "message": "기록을 찾을 수 없습니다"},
         )
 
+    # Clean up photos from Supabase Storage before deleting from DB
+    for url in (log.photo_urls or []):
+        try:
+            await delete_farm_photo(url)
+        except Exception as e:
+            logger.warning("Failed to delete photo %s: %s", url, e)
+
     await db.delete(log)
     await db.commit()
+
+
+# --- Photo upload/delete ---
+
+MAX_PHOTO_SIZE = 10 * 1024 * 1024  # 10MB per photo
+MAX_PHOTOS_PER_LOG = 10
+ALLOWED_PHOTO_TYPES = {"image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"}
+
+
+@router.post("/{log_id}/photos", response_model=PhotoUploadResponse)
+async def upload_photos(
+    log_id: str,
+    files: list[UploadFile],
+    farmer: Farmer = Depends(get_current_farmer),
+    db: AsyncSession = Depends(get_db),
+) -> PhotoUploadResponse:
+    """Upload photos to a farm log. Accepts multiple image files."""
+    result = await db.execute(
+        select(FarmLog).where(FarmLog.id == log_id, FarmLog.farmer_id == farmer.id)
+    )
+    log = result.scalar_one_or_none()
+
+    if log is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "NOT_FOUND", "message": "기록을 찾을 수 없습니다"},
+        )
+
+    existing_count = len(log.photo_urls or [])
+    if existing_count + len(files) > MAX_PHOTOS_PER_LOG:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": "TOO_MANY_PHOTOS",
+                "message": f"사진은 최대 {MAX_PHOTOS_PER_LOG}장까지 첨부할 수 있습니다",
+            },
+        )
+
+    new_urls: list[str] = []
+    for file in files:
+        content_type = (file.content_type or "").split(";")[0].strip().lower()
+        if content_type not in ALLOWED_PHOTO_TYPES:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={"code": "INVALID_TYPE", "message": f"지원하지 않는 파일 형식입니다: {content_type}"},
+            )
+
+        image_bytes = await file.read()
+        if len(image_bytes) > MAX_PHOTO_SIZE:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={"code": "FILE_TOO_LARGE", "message": "파일 크기가 10MB를 초과합니다"},
+            )
+
+        # Convert HEIC to JPEG for broader compatibility
+        if content_type in ("image/heic", "image/heif"):
+            image_bytes, content_type = await _convert_heic(image_bytes)
+
+        url = await upload_farm_photo(image_bytes, content_type)
+        new_urls.append(url)
+
+    # Append new URLs to existing photo_urls JSONB array
+    log.photo_urls = (log.photo_urls or []) + new_urls
+    await db.commit()
+
+    logger.info("Uploaded %d photos to farm log %s", len(new_urls), log_id)
+    return PhotoUploadResponse(
+        photo_urls=log.photo_urls,
+        message=f"{len(new_urls)}장의 사진이 업로드되었습니다",
+    )
+
+
+@router.delete("/{log_id}/photos", response_model=PhotoUploadResponse)
+async def delete_photo(
+    log_id: str,
+    photo_url: str = Query(..., description="URL of the photo to delete"),
+    farmer: Farmer = Depends(get_current_farmer),
+    db: AsyncSession = Depends(get_db),
+) -> PhotoUploadResponse:
+    """Delete a single photo from a farm log by URL."""
+    result = await db.execute(
+        select(FarmLog).where(FarmLog.id == log_id, FarmLog.farmer_id == farmer.id)
+    )
+    log = result.scalar_one_or_none()
+
+    if log is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "NOT_FOUND", "message": "기록을 찾을 수 없습니다"},
+        )
+
+    if photo_url not in (log.photo_urls or []):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "PHOTO_NOT_FOUND", "message": "해당 사진을 찾을 수 없습니다"},
+        )
+
+    # Delete from Supabase Storage
+    try:
+        await delete_farm_photo(photo_url)
+    except Exception as e:
+        logger.warning("Failed to delete photo from storage: %s", e)
+
+    # Remove from JSONB array
+    log.photo_urls = [u for u in log.photo_urls if u != photo_url]
+    await db.commit()
+
+    return PhotoUploadResponse(
+        photo_urls=log.photo_urls,
+        message="사진이 삭제되었습니다",
+    )
+
+
+async def _convert_heic(image_bytes: bytes) -> tuple[bytes, str]:
+    """Convert HEIC/HEIF to JPEG — iPhones shoot HEIC by default."""
+    try:
+        import io
+        from PIL import Image
+        import pillow_heif
+
+        pillow_heif.register_heif_opener()
+        img = Image.open(io.BytesIO(image_bytes))
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG", quality=85)
+        return buf.getvalue(), "image/jpeg"
+    except ImportError:
+        logger.warning("pillow-heif not installed, returning HEIC as-is")
+        return image_bytes, "image/heic"

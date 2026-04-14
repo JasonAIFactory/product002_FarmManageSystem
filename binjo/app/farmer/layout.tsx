@@ -80,8 +80,8 @@ export default function FarmerLayout({ children }: { children: React.ReactNode }
         </div>
         <button
           onClick={() => { logout(); router.replace("/farmer/login"); }}
-          className="text-xs px-3 py-1.5 rounded-lg"
-          style={{ backgroundColor: "#F5F1EC", color: "#6B6B6B" }}
+          className="text-xs px-4 py-2.5 rounded-lg"
+          style={{ backgroundColor: "#F5F1EC", color: "#6B6B6B", minHeight: "44px" }}
         >
           로그아웃
         </button>
@@ -109,7 +109,7 @@ export default function FarmerLayout({ children }: { children: React.ReactNode }
                   <button
                     key={item.href}
                     onClick={() => { router.push(item.href); setMoreOpen(false); }}
-                    className="flex flex-col items-center gap-1 py-3 rounded-xl text-xs font-medium"
+                    className="flex flex-col items-center gap-1 py-4 rounded-xl text-xs font-medium"
                     style={{
                       backgroundColor: active ? "#EDF4E8" : "transparent",
                       color: active ? "#2D5016" : "#6B6B6B",
@@ -130,7 +130,7 @@ export default function FarmerLayout({ children }: { children: React.ReactNode }
               <button
                 key={item.href}
                 onClick={() => { router.push(item.href); setMoreOpen(false); }}
-                className="flex-1 flex flex-col items-center py-2 transition-colors"
+                className="flex-1 flex flex-col items-center py-3 transition-colors"
                 style={{ color: active ? "#2D5016" : "#9B9B9B" }}
               >
                 <span className="text-xl">{item.icon}</span>
@@ -140,7 +140,7 @@ export default function FarmerLayout({ children }: { children: React.ReactNode }
           })}
           <button
             onClick={() => setMoreOpen(!moreOpen)}
-            className="flex-1 flex flex-col items-center py-2 transition-colors"
+            className="flex-1 flex flex-col items-center py-3 transition-colors"
             style={{
               color: moreOpen || NAV_ITEMS.slice(4).some((i) => pathname === i.href)
                 ? "#2D5016"

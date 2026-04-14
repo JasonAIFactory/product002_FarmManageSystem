@@ -40,6 +40,10 @@ class FarmLog(Base):
 
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    # Photo URLs stored in Supabase Storage — JSONB array of public URLs
+    # Using JSONB instead of a separate table: simpler for now, promotes if we need per-photo metadata later
+    photo_urls: Mapped[list] = mapped_column(JSONB, default=list, server_default="[]")
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
